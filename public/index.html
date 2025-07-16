@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bingo Multijoueur</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            max-width: 900px;
+            width: 100%;
+            margin: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .menu {
+            text-align: center;
+        }
+
+        .menu-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            margin: 10px;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .menu-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .game-code {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .players-list {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .players-list h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .player-item {
+            padding: 8px 12px;
+            background: white;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+        }
+
+        .bingo-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 2px;
+            max-width: 400px;
+            margin: 0 auto 20px;
+            background: #ddd;
+            padding: 2px;
+            border-radius: 10px;
+        }
+
+        .bingo-cell {
+            aspect-ratio: 1;
+            background: white;
+            border: none;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .bingo-cell:hover {
+            background: #f0f0f0;
+        }
+
+        .bingo-cell.marked {
+            background: #667eea;
+            color: white;
+        }
+
+        .bingo-cell.free {
+            background: #28a745;
+            color: white;
+        }
+
+        .draw-section {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .current-number {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .drawn-numbers {
+            max-height: 100px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .drawn-number {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 5px 10px;
+            margin: 2px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .winner-announcement {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+        }
+
+        .back-button {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        .back-button:hover {
+            background: #5a6268;
+        }
+
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .bingo-grid {
+                max-width: 300px;
+            }
+            
+            .bingo-cell {
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎱 BINGO MULTIJOUEUR 🎱</h1>
+            <p>Jouez au bingo avec vos amis en ligne !</p>
+        </div>
+
+        <div class="content">
+            <!-- Menu principal -->
+            <div id="main-menu" class="menu">
+                <button class="menu-button" onclick="showCreateGame()">Créer une partie</button>
+                <button class="menu-button" onclick="showJoinGame()">Rejoindre une partie</button>
+            </div>
+
+            <!-- Créer une partie -->
+            <div id="create-game" class="hidden">
+                <button class="back-button" onclick="showMainMenu()">← Retour</button>
+                <h2>Créer une nouvelle partie</h2>
+                <div class="form-group">
+                    <label for="host-name">Votre nom :</label>
+                    <input type="text" id="host-name" placeholder="Entrez votre nom">
+                </div>
+                <button class="menu-button" onclick="createGame()">Créer la partie</button>
+            </div>
+
+            <!-- Rejoindre une partie -->
+            <div id="join-game" class="hidden">
+                <button class="back-button" onclick="showMainMenu()">← Retour</button>
+                <h2>Rejoindre une partie</h2>
+                <div class="form-group">
+                    <label for="player-name">Votre nom :</label>
+                    <input type="text" id="player-name" placeholder="Entrez votre nom">
+                </div>
+                <div class="form-group">
+                    <label for="game-code">Code de la partie :</label>
+                    <input type="text" id="game-code" placeholder="Entrez le code de la partie">
+                </div>
+                <button class="menu-button" onclick="joinGame()">Rejoindre</button>
+            </div>
+
+            <!-- Salle d'attente -->
+            <div id="waiting-room" class="hidden">
+                <div id="game-code-display" class="game-code"></div>
+                <div class="players-list">
+                    <h3>Joueurs connectés :</h3>
+                    <div id="players-list"></div>
+                </div>
+                <button id="start-game-btn" class="menu-button hidden" onclick="startGame()">Démarrer la partie</button>
+                <button class="back-button" onclick="leaveGame()">Quitter</button>
+            </div>
+
+            <!-- Jeu en cours -->
+            <div id="game-area" class="hidden">
+                <div id="winner-announcement" class="winner-announcement hidden"></div>
+                
+                <div class="draw-section">
+                    <div>Numéro tiré :</div>
+                    <div id="current-number" class="current-number">-</div>
+                </div>
+
+                <div class="drawn-numbers" id="drawn-numbers">
+                    <strong>Numéros tirés :</strong> Aucun pour le moment
+                </div>
+
+                <div class="bingo-grid" id="bingo-grid"></div>
+
+                <button class="back-button" onclick="leaveGame()">Quitter la partie</button>
+            </div>
+
+            <!-- Messages d'erreur/succès -->
+            <div id="message" class="hidden"></div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let currentGameCode = null;
+        let currentPlayer = null;
+        let isHost = false;
+
+        // Gestion des événements socket
+        socket.on('game-joined', (data) => {
+            currentGameCode = data.gameCode;
+            currentPlayer = data.player;
+            isHost = data.players.length === 1;
+            
+            showWaitingRoom();
+            updateGameCode(data.gameCode);
+            updatePlayersList(data.players);
+            
+            if (isHost) {
+                document.getElementById('start-game-btn').classList.remove('hidden');
+            }
+        });
+
+        socket.on('player-joined', (data) => {
+            updatePlayersList(data.players);
+        });
+
+        socket.on('player-left', (data) => {
+            updatePlayersList(data.players);
+        });
+
+        socket.on('game-started', () => {
+            showGameArea();
+            renderBingoGrid();
+        });
+
+        socket.on('number-drawn', (data) => {
+            document.getElementById('current-number').textContent = data.number;
+            updateDrawnNumbers(data.drawnNumbers);
+        });
+
+        socket.on('grid-updated', (grid) => {
+            renderBingoGrid(grid);
+        });
+
+        socket.on('bingo', (data) => {
+            showWinnerAnnouncement(data.winner);
+        });
+
+        socket.on('error', (message) => {
+            showMessage(message, 'error');
+        });
+
+        // Fonctions d'interface
+        function showMainMenu() {
+            hideAllSections();
+            document.getElementById('main-menu').classList.remove('hidden');
+            currentGameCode = null;
+            currentPlayer = null;
+            isHost = false;
+        }
+
+        function showCreateGame() {
+            hideAllSections();
+            document.getElementById('create-game').classList.remove('hidden');
+        }
+
+        function showJoinGame() {
+            hideAllSections();
+            document.getElementById('join-game').classList.remove('hidden');
+        }
+
+        function showWaitingRoom() {
+            hideAllSections();
+            document.getElementById('waiting-room').classList.remove('hidden');
+        }
+
+        function showGameArea() {
+            hideAllSections();
+            document.getElementById('game-area').classList.remove('hidden');
+        }
+
+        function hideAllSections() {
+            const sections = ['main-menu', 'create-game', 'join-game', 'waiting-room', 'game-area'];
+            sections.forEach(id => document.getElementById(id).classList.add('hidden'));
+            document.getElementById('message').classList.add('hidden');
+        }
+
+        function showMessage(message, type = 'error') {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = message;
+            messageDiv.className = type;
+            messageDiv.classList.remove('hidden');
+            
+            setTimeout(() => {
+                messageDiv.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Fonctions de jeu
+        async function createGame() {
+            const hostName = document.getElementById('host-name').value.trim();
+            if (!hostName) {
+                showMessage('Veuillez entrer votre nom');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/create-game', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    socket.emit('join-game', { gameCode: data.gameCode, playerName: hostName });
+                } else {
+                    showMessage(data.error || 'Erreur lors de la création de la partie');
+                }
+            } catch (error) {
+                showMessage('Erreur de connexion');
+            }
+        }
+
+        async function joinGame() {
+            const playerName = document.getElementById('player-name').value.trim();
+            const gameCode = document.getElementById('game-code').value.trim().toUpperCase();
+            
+            if (!playerName || !gameCode) {
+                showMessage('Veuillez remplir tous les champs');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/join-game', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ gameCode })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    socket.emit('join-game', { gameCode, playerName });
+                } else {
+                    showMessage(data.error || 'Erreur lors de la connexion à la partie');
+                }
+            } catch (error) {
+                showMessage('Erreur de connexion');
+            }
+        }
+
+        function startGame() {
+            if (currentGameCode) {
+                socket.emit('start-game', { gameCode: currentGameCode });
+            }
+        }
+
+        function leaveGame() {
+            socket.disconnect();
+            socket.connect();
+            showMainMenu();
+        }
+
+        function updateGameCode(code) {
+            document.getElementById('game-code-display').innerHTML = 
+                `<strong>Code de la partie : ${code}</strong><br>Partagez ce code avec vos amis !`;
+        }
+
+        function updatePlayersList(players) {
+            const listDiv = document.getElementById('players-list');
+            listDiv.innerHTML = players.map(player => 
+                `<div class="player-item">${player.name}</div>`
+            ).join('');
+        }
+
+        function renderBingoGrid(grid = null) {
+            const gridDiv = document.getElementById('bingo-grid');
+            const playerGrid = grid || currentPlayer.grid;
+            
+            gridDiv.innerHTML = '';
+            
+            playerGrid.forEach((cell, index) => {
+                const cellButton = document.createElement('button');
+                cellButton.className = 'bingo-cell';
+                cellButton.textContent = cell.number;
+                
+                if (cell.number === 'FREE') {
+                    cellButton.classList.add('free');
+                } else if (cell.marked) {
+                    cellButton.classList.add('marked');
+                }
+                
+                cellButton.onclick = () => markCell(index);
+                gridDiv.appendChild(cellButton);
+            });
+        }
+
+        function markCell(index) {
+            if (currentGameCode) {
+                socket.emit('mark-number', { gameCode: currentGameCode, index });
+            }
+        }
+
+        function updateDrawnNumbers(numbers) {
+            const drawnDiv = document.getElementById('drawn-numbers');
+            if (numbers.length === 0) {
+                drawnDiv.innerHTML = '<strong>Numéros tirés :</strong> Aucun pour le moment';
+            } else {
+                drawnDiv.innerHTML = '<strong>Numéros tirés :</strong> ' + 
+                    numbers.map(num => `<span class="drawn-number">${num}</span>`).join('');
+            }
+        }
+
+        function showWinnerAnnouncement(winner) {
+            const announcement = document.getElementById('winner-announcement');
+            announcement.innerHTML = `🎉 ${winner.name} a gagné ! BINGO ! 🎉`;
+            announcement.classList.remove('hidden');
+        }
+
+        // Gestion des touches Enter
+        document.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                if (!document.getElementById('create-game').classList.contains('hidden')) {
+                    createGame();
+                } else if (!document.getElementById('join-game').classList.contains('hidden')) {
+                    joinGame();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
