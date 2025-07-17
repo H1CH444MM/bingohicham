@@ -225,6 +225,87 @@
             font-size: 1.2rem;
         }
 
+        .chat-container {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .chat-messages {
+            height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: white;
+        }
+
+        .chat-message {
+            margin-bottom: 8px;
+            padding: 5px 8px;
+            border-radius: 5px;
+            background: #e9ecef;
+        }
+
+        .chat-message.own {
+            background: #667eea;
+            color: white;
+            text-align: right;
+        }
+
+        .chat-message .sender {
+            font-weight: bold;
+            font-size: 0.8rem;
+            margin-bottom: 2px;
+        }
+
+        .chat-input-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+
+        .chat-send {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .chat-send:hover {
+            background: #5a67d8;
+        }
+
+        .restart-button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-right: 10px;
+        }
+
+        .restart-button:hover {
+            background: #218838;
+        }
+
         .back-button {
             background: #6c757d;
             color: white;
@@ -311,7 +392,10 @@
 
             <!-- Jeu en cours -->
             <div id="game-area" class="hidden">
-                <div id="winner-announcement" class="winner-announcement hidden"></div>
+                <div id="winner-announcement" class="winner-announcement hidden">
+                    <div id="winner-text"></div>
+                    <button id="restart-btn" class="restart-button hidden" onclick="restartGame()">Rejouer</button>
+                </div>
                 
                 <div class="draw-section">
                     <div>Numéro tiré :</div>
@@ -323,6 +407,14 @@
                 </div>
 
                 <div class="bingo-grid" id="bingo-grid"></div>
+
+                <div class="chat-container">
+                    <div class="chat-messages" id="chat-messages"></div>
+                    <div class="chat-input-container">
+                        <input type="text" id="chat-input" class="chat-input" placeholder="Tapez votre message..." maxlength="200">
+                        <button onclick="sendChatMessage()" class="chat-send">Envoyer</button>
+                    </div>
+                </div>
 
                 <button class="back-button" onclick="leaveGame()">Quitter la partie</button>
             </div>
@@ -377,6 +469,23 @@
 
         socket.on('bingo', (data) => {
             showWinnerAnnouncement(data.winner);
+        });
+
+        socket.on('chat-message', (data) => {
+            addChatMessage(data);
+        });
+
+        socket.on('game-restarted', (data) => {
+            document.getElementById('winner-announcement').classList.add('hidden');
+            document.getElementById('current-number').textContent = '-';
+            document.getElementById('drawn-numbers').innerHTML = '<strong>Numéros tirés :</strong> Aucun pour le moment';
+            clearChatMessages();
+            showWaitingRoom();
+            updatePlayersList(data.players);
+            
+            if (isHost) {
+                document.getElementById('start-game-btn').classList.remove('hidden');
+            }
         });
 
         socket.on('error', (message) => {
@@ -547,8 +656,53 @@
 
         function showWinnerAnnouncement(winner) {
             const announcement = document.getElementById('winner-announcement');
-            announcement.innerHTML = `🎉 ${winner.name} a gagné ! BINGO ! 🎉`;
+            const winnerText = document.getElementById('winner-text');
+            const restartBtn = document.getElementById('restart-btn');
+            
+            winnerText.innerHTML = `🎉 ${winner.name} a gagné ! BINGO ! 🎉`;
             announcement.classList.remove('hidden');
+            
+            if (isHost) {
+                restartBtn.classList.remove('hidden');
+            }
+        }
+
+        function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            
+            if (message && currentGameCode) {
+                socket.emit('chat-message', { gameCode: currentGameCode, message });
+                input.value = '';
+            }
+        }
+
+        function addChatMessage(data) {
+            const messagesDiv = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message';
+            
+            if (data.playerId === socket.id) {
+                messageDiv.classList.add('own');
+            }
+            
+            messageDiv.innerHTML = `
+                <div class="sender">${data.playerName}</div>
+                <div>${data.message}</div>
+            `;
+            
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function clearChatMessages() {
+            document.getElementById('chat-messages').innerHTML = '';
+        }
+
+        function restartGame() {
+            if (currentGameCode) {
+                socket.emit('restart-game', { gameCode: currentGameCode });
+            }
         }
 
         // Gestion des touches Enter
@@ -558,6 +712,8 @@
                     createGame();
                 } else if (!document.getElementById('join-game').classList.contains('hidden')) {
                     joinGame();
+                } else if (!document.getElementById('game-area').classList.contains('hidden')) {
+                    sendChatMessage();
                 }
             }
         });
