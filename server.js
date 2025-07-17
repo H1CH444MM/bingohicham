@@ -195,6 +195,45 @@ io.on('connection', (socket) => {
         }
     });
     
+    socket.on('chat-message', ({ gameCode, message }) => {
+        const game = games.get(gameCode);
+        const player = game?.players.get(socket.id);
+        
+        if (!game || !player || !message.trim()) return;
+        
+        const chatMessage = {
+            playerId: socket.id,
+            playerName: player.name,
+            message: message.trim(),
+            timestamp: new Date()
+        };
+        
+        io.to(gameCode).emit('chat-message', chatMessage);
+    });
+    
+    socket.on('restart-game', ({ gameCode }) => {
+        const game = games.get(gameCode);
+        
+        if (!game) return;
+        
+        // Réinitialiser le jeu
+        game.status = 'waiting';
+        game.drawnNumbers = [];
+        game.availableNumbers = generateDrawNumbers();
+        game.currentNumber = null;
+        game.winner = null;
+        
+        // Générer de nouvelles grilles pour tous les joueurs
+        game.players.forEach(player => {
+            player.grid = generateBingoGrid();
+            player.hasBingo = false;
+        });
+        
+        io.to(gameCode).emit('game-restarted', {
+            players: Array.from(game.players.values()).map(p => ({ id: p.id, name: p.name }))
+        });
+    });
+    
     socket.on('disconnect', () => {
         const playerData = players.get(socket.id);
         if (playerData) {
@@ -238,7 +277,7 @@ function startAutoDraw(gameCode) {
             number,
             drawnNumbers: game.drawnNumbers
         });
-    }, 3000); // Tirage toutes les 3 secondes
+            }, 5000); // Tirage toutes les 5 secondes
 }
 
 // Nettoyage des parties anciennes
