@@ -3,573 +3,690 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bingo Multijoueur</title>
-    <script src="/socket.io/socket.io.js"></script>
+    <title>🎱 BINGO MULTIJOUEUR 🎱</title>
     <style>
+        /* Reset et styles de base */
         * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
         }
 
         body {
             font-family: 'Arial', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            color: #333;
+            touch-action: manipulation;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
-            max-width: 900px;
-            width: 100%;
-            margin: 20px;
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 20px 15px 90px;
         }
 
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
+        /* En-tête responsive */
+        h1 {
             text-align: center;
-        }
-
-        .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
+            color: white;
+            font-size: clamp(1.5rem, 4vw, 2.5rem);
+            margin-bottom: 20px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
 
-        .content {
-            padding: 40px;
-        }
-
-        .menu {
+        .subtitle {
             text-align: center;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 30px;
+            font-size: clamp(1rem, 3vw, 1.2rem);
         }
 
-        .menu-button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        /* Sections cachées/affichées */
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        /* Boutons tactiles optimisés */
+        .btn {
+            background: #ff6b6b;
             color: white;
             border: none;
-            padding: 15px 30px;
-            margin: 10px;
+            padding: 15px 25px;
             border-radius: 25px;
-            font-size: 1.1rem;
+            font-size: 16px;
+            font-weight: bold;
             cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             transition: all 0.3s ease;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            margin: 10px 5px;
+            min-height: 48px;
+            min-width: 120px;
+            display: inline-block;
+            text-align: center;
+            text-decoration: none;
         }
 
-        .menu-button:hover {
+        .btn:hover, .btn:active {
+            background: #ff5252;
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
         }
 
-        .form-group {
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #333;
+        }
+
+        /* Formulaires mobiles */
+        .form-container {
+            background: rgba(255,255,255,0.95);
+            padding: 25px 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+        }
+
+        .input-group {
             margin-bottom: 20px;
         }
 
-        .form-group label {
+        .input-group label {
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
             font-weight: bold;
             color: #333;
         }
 
-        .form-group input {
+        .input-group input {
             width: 100%;
-            padding: 12px;
+            padding: 15px;
             border: 2px solid #ddd;
-            border-radius: 10px;
-            font-size: 1rem;
+            border-radius: 8px;
+            font-size: 16px;
             transition: border-color 0.3s ease;
         }
 
-        .form-group input:focus {
+        .input-group input:focus {
             outline: none;
             border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
-        .game-code {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-            margin-bottom: 20px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: #667eea;
-        }
-
-        .players-list {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-
-        .players-list h3 {
-            margin-bottom: 15px;
-            color: #333;
-        }
-
-        .player-item {
-            padding: 8px 12px;
-            background: white;
-            margin-bottom: 5px;
-            border-radius: 5px;
-            border-left: 4px solid #667eea;
+        /* Grille de bingo responsive */
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-width: 100%;
         }
 
         .bingo-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
-            gap: 2px;
-            max-width: 400px;
-            margin: 0 auto 20px;
-            background: #ddd;
-            padding: 2px;
-            border-radius: 10px;
+            gap: 6px;
+            max-width: 350px;
+            margin: 0 auto;
+            background: white;
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
         }
 
         .bingo-cell {
             aspect-ratio: 1;
-            background: white;
-            border: none;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
+            background: #f8f9ff;
+            border: 2px solid #e0e6ff;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-        }
-
-        .bingo-cell:hover {
-            background: #f0f0f0;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-height: 48px;
+            touch-action: manipulation;
         }
 
         .bingo-cell.marked {
-            background: #667eea;
+            background: #4caf50;
             color: white;
+            transform: scale(0.95);
+            border-color: #4caf50;
         }
 
         .bingo-cell.free {
-            background: #28a745;
+            background: #ff9800;
             color: white;
+            border-color: #ff9800;
         }
 
-        .draw-section {
+        /* Zone d'information */
+        .game-info {
+            background: rgba(255,255,255,0.95);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
             text-align: center;
-            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
         }
 
         .current-number {
-            font-size: 3rem;
+            font-size: clamp(2rem, 8vw, 3rem);
             font-weight: bold;
             color: #667eea;
             margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
         }
 
         .drawn-numbers {
-            max-height: 100px;
-            overflow-y: auto;
-            background: #f8f9fa;
-            padding: 10px;
+            background: #f5f5f5;
+            padding: 15px;
             border-radius: 10px;
-            margin-bottom: 20px;
+            margin-top: 15px;
+            max-height: 150px;
+            overflow-y: auto;
         }
 
-        .drawn-number {
+        .drawn-numbers span {
             display: inline-block;
             background: #667eea;
             color: white;
             padding: 5px 10px;
-            margin: 2px;
+            margin: 3px;
             border-radius: 15px;
-            font-size: 0.9rem;
+            font-size: 14px;
         }
 
-        .error {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-        }
-
-        .success {
-            background: #d4edda;
-            color: #155724;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .winner-announcement {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            margin-bottom: 20px;
-            font-size: 1.2rem;
-        }
-
-        .chat-container {
-            background: #f8f9fa;
-            border-radius: 10px;
+        /* Liste des joueurs */
+        .players-list {
+            background: rgba(255,255,255,0.95);
             padding: 15px;
-            margin-bottom: 20px;
-            max-width: 400px;
-            margin-left: auto;
-            margin-right: auto;
+            border-radius: 15px;
+            margin: 15px 0;
+            backdrop-filter: blur(10px);
+        }
+
+        .player-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: #f8f9ff;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            font-weight: 500;
+        }
+
+        /* Chat responsive */
+        .chat-container {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            margin: 20px 0;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
         }
 
         .chat-messages {
             height: 200px;
             overflow-y: auto;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            padding: 10px;
-            margin-bottom: 10px;
-            background: white;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
         }
 
         .chat-message {
-            margin-bottom: 8px;
-            padding: 5px 8px;
-            border-radius: 5px;
-            background: #e9ecef;
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 8px;
+            background: #f8f9ff;
         }
 
-        .chat-message.own {
-            background: #667eea;
-            color: white;
-            text-align: right;
-        }
-
-        .chat-message .sender {
-            font-weight: bold;
-            font-size: 0.8rem;
-            margin-bottom: 2px;
+        .chat-message strong {
+            color: #667eea;
         }
 
         .chat-input-container {
             display: flex;
+            padding: 15px;
             gap: 10px;
         }
 
         .chat-input {
             flex: 1;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 0.9rem;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            font-size: 16px;
         }
 
-        .chat-send {
+        .chat-send-btn {
+            background: #667eea;
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            min-width: 60px;
+        }
+
+        /* Navigation mobile fixe */
+        .mobile-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255,255,255,0.95);
+            padding: 15px;
+            display: flex;
+            justify-content: space-around;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            border-top: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .mobile-nav .btn {
+            margin: 0;
+            padding: 12px 20px;
+            font-size: 14px;
+            flex: 1;
+            max-width: 120px;
+        }
+
+        /* Alertes mobiles */
+        .mobile-alert {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #4caf50;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 25px;
+            z-index: 1001;
+            animation: slideDown 0.3s ease;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .mobile-alert.error {
+            background: #f44336;
+        }
+
+        .mobile-alert.warning {
+            background: #ff9800;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateX(-50%) translateY(-100%);
+            }
+            to {
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        /* Game code display */
+        .game-code {
             background: #667eea;
             color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.9rem;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 20px 0;
+            letter-spacing: 2px;
         }
 
-        .chat-send:hover {
-            background: #5a67d8;
-        }
-
-        .restart-button {
-            background: #28a745;
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1rem;
-            margin-right: 10px;
-        }
-
-        .restart-button:hover {
-            background: #218838;
-        }
-
-        .back-button {
-            background: #6c757d;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-right: 10px;
-        }
-
-        .back-button:hover {
-            background: #5a6268;
-        }
-
-        @media (max-width: 600px) {
-            .header h1 {
-                font-size: 2rem;
-            }
-            
-            .content {
-                padding: 20px;
+        /* Media Queries */
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px 10px 90px;
             }
             
             .bingo-grid {
-                max-width: 300px;
+                max-width: 320px;
+                gap: 4px;
+                padding: 10px;
             }
             
             .bingo-cell {
-                font-size: 0.8rem;
+                font-size: 12px;
+                min-height: 45px;
+            }
+            
+            .form-container {
+                padding: 20px 15px;
+            }
+            
+            .btn {
+                padding: 12px 20px;
+                font-size: 14px;
+            }
+        }
+
+        @media (min-width: 481px) and (max-width: 768px) {
+            .bingo-grid {
+                max-width: 380px;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .container {
+                max-width: 1200px;
+                padding: 30px 20px;
+            }
+            
+            .mobile-nav {
+                display: none;
+            }
+            
+            .game-container {
+                display: grid;
+                grid-template-columns: 1fr 300px;
+                gap: 30px;
+                align-items: start;
+            }
+            
+            .bingo-grid {
+                max-width: 450px;
+            }
+        }
+
+        /* Amélioration accessibilité tactile */
+        @media (hover: none) and (pointer: coarse) {
+            .btn {
+                padding: 18px 30px;
+                font-size: 16px;
+            }
+            
+            .bingo-cell {
+                min-height: 52px;
+                font-size: 16px;
+            }
+            
+            .input-group input {
+                padding: 18px;
+                font-size: 18px;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
+        <!-- Menu principal -->
+        <div id="main-menu" class="section active">
             <h1>🎱 BINGO MULTIJOUEUR 🎱</h1>
-            <p>Jouez au bingo avec vos amis en ligne !</p>
+            <p class="subtitle">Jouez au bingo avec vos amis en ligne !</p>
+            
+            <div class="form-container">
+                <button class="btn" onclick="showCreateGame()">Créer une partie</button>
+                <button class="btn" onclick="showJoinGame()">Rejoindre une partie</button>
+            </div>
         </div>
 
-        <div class="content">
-            <!-- Menu principal -->
-            <div id="main-menu" class="menu">
-                <button class="menu-button" onclick="showCreateGame()">Créer une partie</button>
-                <button class="menu-button" onclick="showJoinGame()">Rejoindre une partie</button>
-            </div>
-
-            <!-- Créer une partie -->
-            <div id="create-game" class="hidden">
-                <button class="back-button" onclick="showMainMenu()">← Retour</button>
+        <!-- Créer une partie -->
+        <div id="create-game" class="section">
+            <button class="btn btn-secondary" onclick="showMainMenu()">← Retour</button>
+            
+            <div class="form-container">
                 <h2>Créer une nouvelle partie</h2>
-                <div class="form-group">
-                    <label for="host-name">Votre nom :</label>
-                    <input type="text" id="host-name" placeholder="Entrez votre nom">
+                <div class="input-group">
+                    <label for="create-player-name">Votre nom :</label>
+                    <input type="text" id="create-player-name" placeholder="Entrez votre nom" maxlength="20">
                 </div>
-                <button class="menu-button" onclick="createGame()">Créer la partie</button>
+                <button class="btn btn-success" onclick="createGame()">Créer la partie</button>
             </div>
+        </div>
 
-            <!-- Rejoindre une partie -->
-            <div id="join-game" class="hidden">
-                <button class="back-button" onclick="showMainMenu()">← Retour</button>
+        <!-- Rejoindre une partie -->
+        <div id="join-game" class="section">
+            <button class="btn btn-secondary" onclick="showMainMenu()">← Retour</button>
+            
+            <div class="form-container">
                 <h2>Rejoindre une partie</h2>
-                <div class="form-group">
-                    <label for="player-name">Votre nom :</label>
-                    <input type="text" id="player-name" placeholder="Entrez votre nom">
+                <div class="input-group">
+                    <label for="join-player-name">Votre nom :</label>
+                    <input type="text" id="join-player-name" placeholder="Entrez votre nom" maxlength="20">
                 </div>
-                <div class="form-group">
-                    <label for="game-code">Code de la partie :</label>
-                    <input type="text" id="game-code" placeholder="Entrez le code de la partie">
+                <div class="input-group">
+                    <label for="game-code-input">Code de la partie :</label>
+                    <input type="text" id="game-code-input" placeholder="Code à 6 lettres" maxlength="6" style="text-transform: uppercase;">
                 </div>
-                <button class="menu-button" onclick="joinGame()">Rejoindre</button>
+                <button class="btn btn-success" onclick="joinGame()">Rejoindre</button>
+            </div>
+        </div>
+
+        <!-- Salle d'attente -->
+        <div id="waiting-room" class="section">
+            <div class="game-code" id="game-code-display"></div>
+            
+            <div class="players-list">
+                <h3>Joueurs connectés :</h3>
+                <div id="players-list"></div>
+            </div>
+            
+            <div style="text-align: center; margin: 20px 0;">
+                <button class="btn btn-success" id="start-game-btn" onclick="startGame()" style="display: none;">Démarrer la partie</button>
             </div>
 
-            <!-- Salle d'attente -->
-            <div id="waiting-room" class="hidden">
-                <div id="game-code-display" class="game-code"></div>
-                <div class="players-list">
-                    <h3>Joueurs connectés :</h3>
-                    <div id="players-list"></div>
+            <div class="chat-container">
+                <div class="chat-messages" id="chat-messages"></div>
+                <div class="chat-input-container">
+                    <input type="text" class="chat-input" id="chat-input" placeholder="Tapez votre message..." maxlength="200">
+                    <button class="chat-send-btn" onclick="sendChatMessage()">Envoyer</button>
                 </div>
-                <button id="start-game-btn" class="menu-button hidden" onclick="startGame()">Démarrer la partie</button>
-                <button class="back-button" onclick="leaveGame()">Quitter</button>
             </div>
+        </div>
 
-            <!-- Jeu en cours -->
-            <div id="game-area" class="hidden">
-                <div id="winner-announcement" class="winner-announcement hidden">
-                    <div id="winner-text"></div>
-                    <button id="restart-btn" class="restart-button hidden" onclick="restartGame()">Rejouer</button>
+        <!-- Jeu en cours -->
+        <div id="game-play" class="section">
+            <div class="game-container">
+                <div class="main-game">
+                    <div class="game-info">
+                        <div>Numéro tiré :</div>
+                        <div class="current-number" id="current-number">-</div>
+                        <div class="drawn-numbers">
+                            <strong>Numéros tirés :</strong>
+                            <div id="drawn-numbers">Aucun pour le moment</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bingo-grid" id="bingo-grid"></div>
                 </div>
                 
-                <div class="draw-section">
-                    <div>Numéro tiré :</div>
-                    <div id="current-number" class="current-number">-</div>
-                </div>
-
-                <div class="drawn-numbers" id="drawn-numbers">
-                    <strong>Numéros tirés :</strong> Aucun pour le moment
-                </div>
-
-                <div class="bingo-grid" id="bingo-grid"></div>
-
-                <div class="chat-container">
-                    <div class="chat-messages" id="chat-messages"></div>
-                    <div class="chat-input-container">
-                        <input type="text" id="chat-input" class="chat-input" placeholder="Tapez votre message..." maxlength="200">
-                        <button onclick="sendChatMessage()" class="chat-send">Envoyer</button>
+                <div class="sidebar">
+                    <div class="players-list">
+                        <h3>Joueurs :</h3>
+                        <div id="game-players-list"></div>
+                    </div>
+                    
+                    <div class="chat-container">
+                        <div class="chat-messages" id="game-chat-messages"></div>
+                        <div class="chat-input-container">
+                            <input type="text" class="chat-input" id="game-chat-input" placeholder="Message..." maxlength="200">
+                            <button class="chat-send-btn" onclick="sendGameChatMessage()">Envoyer</button>
+                        </div>
                     </div>
                 </div>
-
-                <button class="back-button" onclick="leaveGame()">Quitter la partie</button>
             </div>
+        </div>
 
-            <!-- Messages d'erreur/succès -->
-            <div id="message" class="hidden"></div>
+        <!-- Fin de partie -->
+        <div id="game-end" class="section">
+            <div class="form-container" style="text-align: center;">
+                <h2>🎉 BINGO ! 🎉</h2>
+                <p id="winner-message" style="font-size: 1.2rem; margin: 20px 0;"></p>
+                
+                <div style="margin: 30px 0;">
+                    <button class="btn btn-success" onclick="restartGame()">Rejouer</button>
+                </div>
+            </div>
         </div>
     </div>
 
+    <!-- Navigation mobile -->
+    <div class="mobile-nav" id="mobile-nav" style="display: none;">
+        <button class="btn btn-secondary" onclick="quitGame()">Quitter</button>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
     <script>
+        // Variables globales
         const socket = io();
-        let currentGameCode = null;
-        let currentPlayer = null;
-        let isHost = false;
+        let currentGameCode = '';
+        let playerName = '';
+        let isGameCreator = false;
+        let playerGrid = [];
 
-        // Gestion des événements socket
-        socket.on('game-joined', (data) => {
-            currentGameCode = data.gameCode;
-            currentPlayer = data.player;
-            isHost = data.players.length === 1;
+        // Gestion des notifications mobiles
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `mobile-alert ${type}`;
+            notification.textContent = message;
             
-            showWaitingRoom();
-            updateGameCode(data.gameCode);
-            updatePlayersList(data.players);
-            
-            if (isHost) {
-                document.getElementById('start-game-btn').classList.remove('hidden');
-            }
-        });
-
-        socket.on('player-joined', (data) => {
-            updatePlayersList(data.players);
-        });
-
-        socket.on('player-left', (data) => {
-            updatePlayersList(data.players);
-        });
-
-        socket.on('game-started', () => {
-            showGameArea();
-            renderBingoGrid();
-        });
-
-        socket.on('number-drawn', (data) => {
-            document.getElementById('current-number').textContent = data.number;
-            updateDrawnNumbers(data.drawnNumbers);
-        });
-
-        socket.on('grid-updated', (grid) => {
-            renderBingoGrid(grid);
-        });
-
-        socket.on('bingo', (data) => {
-            showWinnerAnnouncement(data.winner);
-        });
-
-        socket.on('chat-message', (data) => {
-            addChatMessage(data);
-        });
-
-        socket.on('game-restarted', (data) => {
-            document.getElementById('winner-announcement').classList.add('hidden');
-            document.getElementById('current-number').textContent = '-';
-            document.getElementById('drawn-numbers').innerHTML = '<strong>Numéros tirés :</strong> Aucun pour le moment';
-            clearChatMessages();
-            showWaitingRoom();
-            updatePlayersList(data.players);
-            
-            if (isHost) {
-                document.getElementById('start-game-btn').classList.remove('hidden');
-            }
-        });
-
-        socket.on('error', (message) => {
-            showMessage(message, 'error');
-        });
-
-        // Fonctions d'interface
-        function showMainMenu() {
-            hideAllSections();
-            document.getElementById('main-menu').classList.remove('hidden');
-            currentGameCode = null;
-            currentPlayer = null;
-            isHost = false;
-        }
-
-        function showCreateGame() {
-            hideAllSections();
-            document.getElementById('create-game').classList.remove('hidden');
-        }
-
-        function showJoinGame() {
-            hideAllSections();
-            document.getElementById('join-game').classList.remove('hidden');
-        }
-
-        function showWaitingRoom() {
-            hideAllSections();
-            document.getElementById('waiting-room').classList.remove('hidden');
-        }
-
-        function showGameArea() {
-            hideAllSections();
-            document.getElementById('game-area').classList.remove('hidden');
-        }
-
-        function hideAllSections() {
-            const sections = ['main-menu', 'create-game', 'join-game', 'waiting-room', 'game-area'];
-            sections.forEach(id => document.getElementById(id).classList.add('hidden'));
-            document.getElementById('message').classList.add('hidden');
-        }
-
-        function showMessage(message, type = 'error') {
-            const messageDiv = document.getElementById('message');
-            messageDiv.textContent = message;
-            messageDiv.className = type;
-            messageDiv.classList.remove('hidden');
+            document.body.appendChild(notification);
             
             setTimeout(() => {
-                messageDiv.classList.add('hidden');
-            }, 5000);
+                notification.remove();
+            }, 4000);
         }
 
-        // Fonctions de jeu
+        // Navigation entre les sections
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(sectionId).classList.add('active');
+            
+            // Gestion de la navigation mobile
+            const mobileNav = document.getElementById('mobile-nav');
+            if (sectionId === 'waiting-room' || sectionId === 'game-play') {
+                mobileNav.style.display = 'flex';
+            } else {
+                mobileNav.style.display = 'none';
+            }
+        }
+
+        function showMainMenu() { showSection('main-menu'); }
+        function showCreateGame() { showSection('create-game'); }
+        function showJoinGame() { showSection('join-game'); }
+
+        // Optimisations mobiles
+        function initMobileOptimizations() {
+            // Désactiver le zoom sur double-tap
+            document.addEventListener('touchstart', function(e) {
+                if (e.touches.length > 1) {
+                    e.preventDefault();
+                }
+            });
+            
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', function(e) {
+                const now = (new Date()).getTime();
+                if (now - lastTouchEnd <= 300) {
+                    e.preventDefault();
+                }
+                lastTouchEnd = now;
+            }, false);
+
+            // Gestion du clavier virtuel
+            const inputs = document.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.addEventListener('focus', () => {
+                    setTimeout(() => {
+                        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 300);
+                });
+            });
+
+            // Gestion des entrées au clavier
+            document.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    const activeElement = document.activeElement;
+                    if (activeElement.id === 'chat-input') {
+                        sendChatMessage();
+                    } else if (activeElement.id === 'game-chat-input') {
+                        sendGameChatMessage();
+                    }
+                }
+            });
+        }
+
+        // Création d'une partie
         async function createGame() {
-            const hostName = document.getElementById('host-name').value.trim();
-            if (!hostName) {
-                showMessage('Veuillez entrer votre nom');
+            const nameInput = document.getElementById('create-player-name');
+            const name = nameInput.value.trim();
+            
+            if (!name) {
+                showNotification('Veuillez entrer votre nom', 'error');
+                return;
+            }
+            
+            if (name.length > 20) {
+                showNotification('Le nom doit faire moins de 20 caractères', 'error');
                 return;
             }
 
             try {
                 const response = await fetch('/api/create-game', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
                 });
                 
                 const data = await response.json();
                 
                 if (data.success) {
-                    socket.emit('join-game', { gameCode: data.gameCode, playerName: hostName });
+                    currentGameCode = data.gameCode;
+                    playerName = name;
+                    isGameCreator = true;
+                    
+                    socket.emit('join-game', { gameCode: currentGameCode, playerName });
+                    showNotification('Partie créée avec succès !', 'success');
                 } else {
-                    showMessage(data.error || 'Erreur lors de la création de la partie');
+                    showNotification(data.error || 'Erreur lors de la création', 'error');
                 }
             } catch (error) {
-                showMessage('Erreur de connexion');
+                showNotification('Erreur de connexion', 'error');
             }
         }
 
+        // Rejoindre une partie
         async function joinGame() {
-            const playerName = document.getElementById('player-name').value.trim();
-            const gameCode = document.getElementById('game-code').value.trim().toUpperCase();
+            const nameInput = document.getElementById('join-player-name');
+            const codeInput = document.getElementById('game-code-input');
+            const name = nameInput.value.trim();
+            const code = codeInput.value.trim().toUpperCase();
             
-            if (!playerName || !gameCode) {
-                showMessage('Veuillez remplir tous les champs');
+            if (!name) {
+                showNotification('Veuillez entrer votre nom', 'error');
+                return;
+            }
+            
+            if (!code || code.length !== 6) {
+                showNotification('Veuillez entrer un code valide', 'error');
                 return;
             }
 
@@ -577,145 +694,229 @@
                 const response = await fetch('/api/join-game', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ gameCode })
+                    body: JSON.stringify({ gameCode: code })
                 });
                 
                 const data = await response.json();
                 
                 if (data.success) {
-                    socket.emit('join-game', { gameCode, playerName });
+                    currentGameCode = code;
+                    playerName = name;
+                    isGameCreator = false;
+                    
+                    socket.emit('join-game', { gameCode: currentGameCode, playerName });
+                    showNotification('Connexion à la partie...', 'success');
                 } else {
-                    showMessage(data.error || 'Erreur lors de la connexion à la partie');
+                    showNotification(data.error || 'Erreur lors de la connexion', 'error');
                 }
             } catch (error) {
-                showMessage('Erreur de connexion');
+                showNotification('Erreur de connexion', 'error');
             }
         }
 
+        // Démarrer la partie
         function startGame() {
-            if (currentGameCode) {
-                socket.emit('start-game', { gameCode: currentGameCode });
+            socket.emit('start-game', { gameCode: currentGameCode });
+        }
+
+        // Quitter la partie
+        function quitGame() {
+            if (confirm('Êtes-vous sûr de vouloir quitter la partie ?')) {
+                socket.disconnect();
+                currentGameCode = '';
+                playerName = '';
+                isGameCreator = false;
+                showMainMenu();
+                showNotification('Vous avez quitté la partie', 'warning');
+                setTimeout(() => location.reload(), 1000);
             }
         }
 
-        function leaveGame() {
-            socket.disconnect();
-            socket.connect();
-            showMainMenu();
+        // Redémarrer la partie
+        function restartGame() {
+            socket.emit('restart-game', { gameCode: currentGameCode });
         }
 
-        function updateGameCode(code) {
-            document.getElementById('game-code-display').innerHTML = 
-                `<strong>Code de la partie : ${code}</strong><br>Partagez ce code avec vos amis !`;
-        }
-
-        function updatePlayersList(players) {
-            const listDiv = document.getElementById('players-list');
-            listDiv.innerHTML = players.map(player => 
-                `<div class="player-item">${player.name}</div>`
-            ).join('');
-        }
-
-        function renderBingoGrid(grid = null) {
-            const gridDiv = document.getElementById('bingo-grid');
-            const playerGrid = grid || currentPlayer.grid;
+        // Génération de la grille de bingo
+        function createBingoGrid(grid) {
+            const bingoGrid = document.getElementById('bingo-grid');
+            bingoGrid.innerHTML = '';
             
-            gridDiv.innerHTML = '';
-            
-            playerGrid.forEach((cell, index) => {
-                const cellButton = document.createElement('button');
-                cellButton.className = 'bingo-cell';
-                cellButton.textContent = cell.number;
+            grid.forEach((cell, index) => {
+                const cellElement = document.createElement('div');
+                cellElement.className = 'bingo-cell';
+                cellElement.textContent = cell.number;
                 
-                if (cell.number === 'FREE') {
-                    cellButton.classList.add('free');
-                } else if (cell.marked) {
-                    cellButton.classList.add('marked');
+                if (cell.marked) {
+                    cellElement.classList.add('marked');
                 }
                 
-                cellButton.onclick = () => markCell(index);
-                gridDiv.appendChild(cellButton);
+                if (cell.number === 'FREE') {
+                    cellElement.classList.add('free');
+                }
+                
+                cellElement.addEventListener('click', () => {
+                    socket.emit('mark-number', { 
+                        gameCode: currentGameCode, 
+                        index 
+                    });
+                });
+                
+                bingoGrid.appendChild(cellElement);
+            });
+            
+            playerGrid = grid;
+        }
+
+        // Mise à jour de la liste des joueurs
+        function updatePlayersList(players, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            players.forEach(player => {
+                const playerElement = document.createElement('div');
+                playerElement.className = 'player-item';
+                playerElement.textContent = player.name;
+                container.appendChild(playerElement);
             });
         }
 
-        function markCell(index) {
-            if (currentGameCode) {
-                socket.emit('mark-number', { gameCode: currentGameCode, index });
-            }
-        }
-
-        function updateDrawnNumbers(numbers) {
-            const drawnDiv = document.getElementById('drawn-numbers');
-            if (numbers.length === 0) {
-                drawnDiv.innerHTML = '<strong>Numéros tirés :</strong> Aucun pour le moment';
-            } else {
-                drawnDiv.innerHTML = '<strong>Numéros tirés :</strong> ' + 
-                    numbers.map(num => `<span class="drawn-number">${num}</span>`).join('');
-            }
-        }
-
-        function showWinnerAnnouncement(winner) {
-            const announcement = document.getElementById('winner-announcement');
-            const winnerText = document.getElementById('winner-text');
-            const restartBtn = document.getElementById('restart-btn');
-            
-            winnerText.innerHTML = `🎉 ${winner.name} a gagné ! BINGO ! 🎉`;
-            announcement.classList.remove('hidden');
-            
-            if (isHost) {
-                restartBtn.classList.remove('hidden');
-            }
-        }
-
+        // Chat
         function sendChatMessage() {
             const input = document.getElementById('chat-input');
             const message = input.value.trim();
             
-            if (message && currentGameCode) {
-                socket.emit('chat-message', { gameCode: currentGameCode, message });
+            if (message) {
+                socket.emit('chat-message', { 
+                    gameCode: currentGameCode, 
+                    message 
+                });
                 input.value = '';
             }
         }
 
-        function addChatMessage(data) {
-            const messagesDiv = document.getElementById('chat-messages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'chat-message';
+        function sendGameChatMessage() {
+            const input = document.getElementById('game-chat-input');
+            const message = input.value.trim();
             
-            if (data.playerId === socket.id) {
-                messageDiv.classList.add('own');
-            }
-            
-            messageDiv.innerHTML = `
-                <div class="sender">${data.playerName}</div>
-                <div>${data.message}</div>
-            `;
-            
-            messagesDiv.appendChild(messageDiv);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }
-
-        function clearChatMessages() {
-            document.getElementById('chat-messages').innerHTML = '';
-        }
-
-        function restartGame() {
-            if (currentGameCode) {
-                socket.emit('restart-game', { gameCode: currentGameCode });
+            if (message) {
+                socket.emit('chat-message', { 
+                    gameCode: currentGameCode, 
+                    message 
+                });
+                input.value = '';
             }
         }
 
-        // Gestion des touches Enter
-        document.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                if (!document.getElementById('create-game').classList.contains('hidden')) {
-                    createGame();
-                } else if (!document.getElementById('join-game').classList.contains('hidden')) {
-                    joinGame();
-                } else if (!document.getElementById('game-area').classList.contains('hidden')) {
-                    sendChatMessage();
+        function addChatMessage(data, containerId) {
+            const container = document.getElementById(containerId);
+            const messageElement = document.createElement('div');
+            messageElement.className = 'chat-message';
+            messageElement.innerHTML = `<strong>${data.playerName}:</strong> ${data.message}`;
+            container.appendChild(messageElement);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Événements Socket.IO
+        socket.on('game-joined', (data) => {
+            showSection('waiting-room');
+            document.getElementById('game-code-display').textContent = `Code: ${currentGameCode}`;
+            updatePlayersList(data.players, 'players-list');
+            
+            if (isGameCreator && data.players.length >= 2) {
+                document.getElementById('start-game-btn').style.display = 'block';
+            }
+            
+            playerGrid = data.player.grid;
+        });
+
+        socket.on('player-joined', (data) => {
+            updatePlayersList(data.players, 'players-list');
+            showNotification(`${data.player.name} a rejoint la partie`, 'success');
+            
+            if (isGameCreator && data.players.length >= 2) {
+                document.getElementById('start-game-btn').style.display = 'block';
+            }
+        });
+
+        socket.on('player-left', (data) => {
+            updatePlayersList(data.players, 'players-list');
+            showNotification('Un joueur a quitté la partie', 'warning');
+        });
+
+        socket.on('game-started', () => {
+            showSection('game-play');
+            createBingoGrid(playerGrid);
+            showNotification('La partie commence !', 'success');
+        });
+
+        socket.on('number-drawn', (data) => {
+            document.getElementById('current-number').textContent = data.number;
+            
+            const drawnNumbersContainer = document.getElementById('drawn-numbers');
+            drawnNumbersContainer.innerHTML = '';
+            data.drawnNumbers.forEach(num => {
+                const span = document.createElement('span');
+                span.textContent = num;
+                drawnNumbersContainer.appendChild(span);
+            });
+            
+            // Vibration sur mobile si le numéro est sur la grille
+            if ('vibrate' in navigator) {
+                const hasNumber = playerGrid.some(cell => 
+                    cell.number === data.number && !cell.marked
+                );
+                if (hasNumber) {
+                    navigator.vibrate(200);
                 }
             }
+        });
+
+        socket.on('grid-updated', (grid) => {
+            createBingoGrid(grid);
+        });
+
+        socket.on('bingo', (data) => {
+            showSection('game-end');
+            document.getElementById('winner-message').textContent = 
+                `🎉 ${data.winner.name} a gagné ! 🎉`;
+            showNotification(`${data.winner.name} a fait BINGO !`, 'success');
+            
+            if ('vibrate' in navigator) {
+                navigator.vibrate([200, 100, 200]);
+            }
+        });
+
+        socket.on('game-restarted', (data) => {
+            showSection('waiting-room');
+            updatePlayersList(data.players, 'players-list');
+            document.getElementById('current-number').textContent = '-';
+            document.getElementById('drawn-numbers').innerHTML = 'Aucun pour le moment';
+            showNotification('Nouvelle partie !', 'success');
+            
+            if (isGameCreator) {
+                document.getElementById('start-game-btn').style.display = 'block';
+            }
+        });
+
+        socket.on('chat-message', (data) => {
+            addChatMessage(data, 'chat-messages');
+            addChatMessage(data, 'game-chat-messages');
+        });
+
+        socket.on('error', (message) => {
+            showNotification(message, 'error');
+        });
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', () => {
+            initMobileOptimizations();
+            
+            // Auto-uppercase pour le code de partie
+            const gameCodeInput = document.getElementById('game-code-input');
+            gameCodeInput.addEventListener('input', (e) => {
+                e.target.value = e.target.value.toUpperCase();
+            });
         });
     </script>
 </body>
