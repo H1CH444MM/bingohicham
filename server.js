@@ -229,8 +229,15 @@ io.on('connection', (socket) => {
             player.hasBingo = false;
         });
         
-        io.to(gameCode).emit('game-restarted', {
-            players: Array.from(game.players.values()).map(p => ({ id: p.id, name: p.name }))
+        // CORRECTION : Envoyer la nouvelle grille à chaque joueur individuellement
+        game.players.forEach((player, playerId) => {
+            const socket = io.sockets.sockets.get(playerId);
+            if (socket) {
+                socket.emit('game-restarted', {
+                    players: Array.from(game.players.values()).map(p => ({ id: p.id, name: p.name })),
+                    playerGrid: player.grid  // Envoyer la grille spécifique du joueur
+                });
+            }
         });
     });
     
@@ -277,7 +284,7 @@ function startAutoDraw(gameCode) {
             number,
             drawnNumbers: game.drawnNumbers
         });
-            }, 5000); // Tirage toutes les 5 secondes
+    }, 5000); // Tirage toutes les 5 secondes
 }
 
 // Nettoyage des parties anciennes
