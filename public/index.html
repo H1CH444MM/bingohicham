@@ -346,7 +346,7 @@
             }
         }
 
-        /* Game code display */
+        /* Game code display - maintenant cliquable */
         .game-code {
             background: #667eea;
             color: white;
@@ -357,6 +357,42 @@
             font-weight: bold;
             margin: 20px 0;
             letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .game-code:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .game-code:active {
+            transform: translateY(0);
+        }
+
+        .game-code::after {
+            content: "📋 Cliquez pour copier";
+            font-size: 0.8rem;
+            display: block;
+            margin-top: 5px;
+            opacity: 0.8;
+        }
+
+        .game-code.copied {
+            background: #4caf50 !important;
+            animation: pulse 0.6s ease;
+        }
+
+        .game-code.copied::after {
+            content: "✅ Code copié !";
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
         }
 
         /* Media Queries */
@@ -480,7 +516,7 @@
 
         <!-- Salle d'attente -->
         <div id="waiting-room" class="section">
-            <div class="game-code" id="game-code-display"></div>
+            <div class="game-code" id="game-code-display" onclick="copyGameCode()"></div>
             
             <div class="players-list">
                 <h3>Joueurs connectés :</h3>
@@ -592,6 +628,33 @@
         function showMainMenu() { showSection('main-menu'); }
         function showCreateGame() { showSection('create-game'); }
         function showJoinGame() { showSection('join-game'); }
+
+        // Fonction pour copier le code de la partie
+        async function copyGameCode() {
+            try {
+                await navigator.clipboard.writeText(currentGameCode);
+                const gameCodeDisplay = document.getElementById('game-code-display');
+                gameCodeDisplay.classList.add('copied');
+                showNotification('Code copié dans le presse-papiers !', 'success');
+                
+                setTimeout(() => {
+                    gameCodeDisplay.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                // Fallback pour les navigateurs qui ne supportent pas l'API Clipboard
+                const textArea = document.createElement('textarea');
+                textArea.value = currentGameCode;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    showNotification('Code copié !', 'success');
+                } catch (err) {
+                    showNotification('Impossible de copier le code', 'error');
+                }
+                document.body.removeChild(textArea);
+            }
+        }
 
         // Optimisations mobiles
         function initMobileOptimizations() {
@@ -893,6 +956,11 @@
             document.getElementById('current-number').textContent = '-';
             document.getElementById('drawn-numbers').innerHTML = 'Aucun pour le moment';
             showNotification('Nouvelle partie !', 'success');
+            
+            // CORRECTION : Mettre à jour la grille du joueur avec la nouvelle grille
+            if (data.playerGrid) {
+                playerGrid = data.playerGrid;
+            }
             
             if (isGameCreator) {
                 document.getElementById('start-game-btn').style.display = 'block';
